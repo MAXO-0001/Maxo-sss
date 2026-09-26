@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>MAXO — پنل مدیریت</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans+Arabic:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="shell">
+
+  <header class="topbar">
+    <div class="brand">MAXO<span class="brand-dot" id="liveDot"></span></div>
+    <nav class="topbar-tabs" id="tabs">
+      <button data-tab="overview" class="tab active">نمای کلی</button>
+      <button data-tab="autoreply" class="tab">پاسخ خودکار</button>
+      <button data-tab="clock" class="tab">ساعت اسم/بیو</button>
+      <button data-tab="block" class="tab">بلاک</button>
+      <button data-tab="mute" class="tab">سکوت</button>
+      <button data-tab="chats" class="tab">مکالمات</button>
+      <button data-tab="deleted" class="tab">آرشیو حذف‌شده</button>
+    </nav>
+    <button id="logoutBtn" class="btn-ghost">خروج</button>
+  </header>
+
+  <main class="content">
+
+    <!-- OVERVIEW -->
+    <section class="panel active" data-panel="overview">
+      <h1>نمای کلی</h1>
+      <div class="stat-grid" id="statGrid"></div>
+    </section>
+
+    <!-- AUTO REPLY -->
+    <section class="panel" data-panel="autoreply">
+      <h1>پاسخ خودکار</h1>
+      <div class="row-between">
+        <p class="hint">حداکثر هر ۱۰ دقیقه یکبار برای هر نفر، با تاخیر تصادفی تا ۲۰ ثانیه ارسال می‌شود.</p>
+        <label class="switch">
+          <input type="checkbox" id="autoReplyToggle">
+          <span class="switch-track"><span class="switch-thumb"></span></span>
+          <span class="switch-label" id="autoReplyLabel">خاموش</span>
+        </label>
+      </div>
+
+      <div class="toolbar">
+        <button type="button" class="btn-outline" data-cmd="bold"><b>B</b> بولد</button>
+        <button type="button" class="btn-outline" data-cmd="blockquote">❝ نقل‌قول</button>
+      </div>
+      <div id="editor" class="editor" contenteditable="true" dir="rtl"></div>
+
+      <div class="row-between" style="margin-top:14px">
+        <button id="saveAutoReply" class="btn-solid">ذخیره متن</button>
+        <span id="autoReplySaved" class="saved-flag" hidden>ذخیره شد ✓</span>
+      </div>
+    </section>
+
+    <!-- NAME / BIO CLOCK -->
+    <section class="panel" data-panel="clock">
+      <h1>ساعت در اسم و بیو</h1>
+
+      <div class="card">
+        <div class="row-between">
+          <h2>ساعت در اسم</h2>
+          <label class="switch">
+            <input type="checkbox" id="nameClockToggle">
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+          </label>
+        </div>
+        <div class="field-row">
+          <label class="field">
+            <span>برچسب</span>
+            <input type="text" id="nameLabel" maxlength="20" placeholder="MAXO">
+          </label>
+          <label class="field">
+            <span>فونت</span>
+            <select id="nameFont">
+              <option value="1">فونت ۱</option>
+              <option value="2">فونت ۲</option>
+              <option value="3">فونت ۳</option>
+              <option value="4">فونت ۴</option>
+            </select>
+          </label>
+        </div>
+        <div class="preview-line">پیش‌نمایش: <span id="namePreview" class="mono"></span></div>
+        <button id="saveNameClock" class="btn-solid">اعمال</button>
+      </div>
+
+      <div class="card">
+        <div class="row-between">
+          <h2>ساعت در بیو</h2>
+          <label class="switch">
+            <input type="checkbox" id="bioClockToggle">
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+          </label>
+        </div>
+        <div class="field-row">
+          <label class="field">
+            <span>فونت</span>
+            <select id="bioFont">
+              <option value="1">فونت ۱</option>
+              <option value="2">فونت ۲</option>
+              <option value="3">فونت ۳</option>
+              <option value="4">فونت ۴</option>
+            </select>
+          </label>
+        </div>
+        <div class="preview-line">پیش‌نمایش خط زمان: <span id="bioPreview" class="mono"></span></div>
+        <p class="hint">بیوی قبلی حفظ می‌شود و خط زمان زیرش اضافه می‌شود.</p>
+        <button id="saveBioClock" class="btn-solid">اعمال</button>
+      </div>
+    </section>
+
+    <!-- BLOCK -->
+    <section class="panel" data-panel="block">
+      <h1>لیست بلاک</h1>
+      <div class="add-row">
+        <input type="text" id="blockInput" placeholder="@username یا آیدی عددی">
+        <button id="blockAddBtn" class="btn-solid">بلاک کن</button>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>نام</th><th>یوزرنیم</th><th>آیدی</th><th>تاریخ</th><th></th></tr></thead>
+        <tbody id="blockTableBody"></tbody>
+      </table>
+      <p class="empty-state" id="blockEmpty" hidden>لیست بلاک خالی است.</p>
+    </section>
+
+    <!-- MUTE -->
+    <section class="panel" data-panel="mute">
+      <h1>لیست سکوت</h1>
+      <div class="add-row">
+        <input type="text" id="muteInput" placeholder="@username یا آیدی عددی">
+        <button id="muteAddBtn" class="btn-solid">ساکت کن</button>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>نام</th><th>یوزرنیم</th><th>آیدی</th><th>تاریخ</th><th></th></tr></thead>
+        <tbody id="muteTableBody"></tbody>
+      </table>
+      <p class="empty-state" id="muteEmpty" hidden>لیست سکوت خالی است.</p>
+    </section>
+
+    <!-- CHATS -->
+    <section class="panel" data-panel="chats">
+      <h1>مکالمات</h1>
+      <table class="data-table">
+        <thead><tr><th>نام</th><th>یوزرنیم</th><th>دریافتی</th><th>پاسخ</th><th>آخرین پیام</th><th>آخرین فعالیت</th></tr></thead>
+        <tbody id="chatsTableBody"></tbody>
+      </table>
+    </section>
+
+    <!-- DELETED ARCHIVE -->
+    <section class="panel" data-panel="deleted">
+      <h1>آرشیو پیام‌های حذف‌شده</h1>
+      <div id="deletedList" class="deleted-list"></div>
+      <div class="pager">
+        <button id="deletedPrev" class="btn-outline">قبلی</button>
+        <span id="deletedPageInfo" class="mono"></span>
+        <button id="deletedNext" class="btn-outline">بعدی</button>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+  </html>
+  
