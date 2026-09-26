@@ -98,6 +98,46 @@ def create_app():
     def api_stats():
         return jsonify({"ok": True, "data": bot.panel_stats()})
 
+    @app.get("/api/account")
+    @login_required
+    def api_account():
+        try:
+            info = run_coro(bot.account_info_dict())
+            return jsonify({"ok": True, "data": info})
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)[:300]}), 500
+
+    @app.get("/api/fonts")
+    @login_required
+    def api_fonts():
+        items = [{"id": k, "name": v} for k, v in sorted(bot.FONT_NAMES.items())]
+        return jsonify({"ok": True, "data": items})
+
+    # ---------------------------------------------------------
+    # DELETE MESSAGES IN A PV
+    # ---------------------------------------------------------
+    @app.post("/api/delete-messages")
+    @login_required
+    def api_delete_messages():
+        data = request.get_json(silent=True) or {}
+        value = (data.get("value") or "").strip()
+        try:
+            count = int(data.get("count", 0))
+        except (TypeError, ValueError):
+            count = 0
+        if not value or count <= 0:
+            return jsonify({"ok": False, "error": "invalid_input"}), 400
+        try:
+            user = run_coro(bot.resolve_user(value))
+            if not user:
+                return jsonify({"ok": False, "error": "user_not_found"}), 404
+            deleted = run_coro(bot.delete_messages_in_entity(user, count))
+            if deleted < 0:
+                return jsonify({"ok": False, "error": "delete_failed"}), 500
+            return jsonify({"ok": True, "deleted": deleted})
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)[:300]}), 500
+
     # ---------------------------------------------------------
     # AUTO REPLY
     # ---------------------------------------------------------

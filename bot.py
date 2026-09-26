@@ -291,21 +291,43 @@ suppress_delete_ids = set()
 # فونت ۳ = Monospace         ->  𝙼𝙰𝚇𝙾 | 𝟹:𝟸𝟶
 # فونت ۴ = Sans-Serif ساده   ->  𝖬𝖠𝖷𝖮 | 𝟦:𝟤𝟢
 
-def _build_font_map(upper_start, lower_start, digit_start):
+def _build_font_map(upper_start, lower_start, digit_start=None, overrides=None):
     mapping = {}
-    for i in range(26):
-        mapping[chr(ord("A") + i)] = chr(upper_start + i)
-        mapping[chr(ord("a") + i)] = chr(lower_start + i)
-    for i in range(10):
-        mapping[chr(ord("0") + i)] = chr(digit_start + i)
+    if upper_start is not None:
+        for i in range(26):
+            mapping[chr(ord("A") + i)] = chr(upper_start + i)
+    if lower_start is not None:
+        for i in range(26):
+            mapping[chr(ord("a") + i)] = chr(lower_start + i)
+    if digit_start is not None:
+        for i in range(10):
+            mapping[chr(ord("0") + i)] = chr(digit_start + i)
+    if overrides:
+        mapping.update(overrides)
     return mapping
 
 
 FONT_MAPS = {
-    1: _build_font_map(0x1D5D4, 0x1D5EE, 0x1D7EC),   # Sans-Serif Bold
-    2: _build_font_map(0x1D400, 0x1D41A, 0x1D7CE),   # Bold
-    3: _build_font_map(0x1D670, 0x1D68A, 0x1D7F6),   # Monospace
-    4: _build_font_map(0x1D5A0, 0x1D5BA, 0x1D7E2),   # Sans-Serif
+    1: _build_font_map(0x1D5D4, 0x1D5EE, 0x1D7EC),                # Sans-Serif Bold
+    2: _build_font_map(0x1D400, 0x1D41A, 0x1D7CE),                # Bold
+    3: _build_font_map(0x1D670, 0x1D68A, 0x1D7F6),                # Monospace
+    4: _build_font_map(0x1D5A0, 0x1D5BA, 0x1D7E2),                # Sans-Serif
+    5: _build_font_map(0x1D434, 0x1D44E, None, {"h": "\u210E"}),  # Italic (h has a Unicode gap)
+    6: _build_font_map(0x1D468, 0x1D482, 0x1D7CE),                # Bold Italic
+    7: _build_font_map(0x1D608, 0x1D622, 0x1D7E2),                # Sans-Serif Italic
+    8: _build_font_map(0x1D63C, 0x1D656, 0x1D7EC),                # Sans-Serif Bold Italic
+    9: _build_font_map(0x1D4D0, 0x1D4EA, None),                   # Bold Script
+    10: _build_font_map(0x1D56C, 0x1D586, None),                  # Bold Fraktur
+    11: _build_font_map(0x1D538, 0x1D552, None, {                 # Double-Struck (several legacy gaps)
+        "C": "\u2102", "H": "\u210D", "I": "\u2111", "N": "\u2115",
+        "P": "\u2119", "Q": "\u211A", "R": "\u211D", "Z": "\u2124",
+    }),
+}
+
+FONT_NAMES = {
+    1: "Sans Bold", 2: "Bold", 3: "Monospace", 4: "Sans",
+    5: "Italic", 6: "Bold Italic", 7: "Sans Italic", 8: "Sans Bold Italic",
+    9: "Bold Script", 10: "Bold Fraktur", 11: "Double-Struck",
 }
 
 
@@ -651,6 +673,30 @@ async def delete_private_messages(event, count):
         print("DELETE ERROR:", type(e).__name__, str(e))
 
 
+async def delete_messages_in_entity(entity, count):
+    """مثل delete_private_messages ولی مستقیم با یک entity کار می‌کنه (برای پنل وب)."""
+    if count <= 0:
+        return 0
+    if count > 1000:
+        count = 1000
+    try:
+        message_ids = []
+        async for message in client.iter_messages(entity=entity, limit=count):
+            message_ids.append(message.id)
+
+        if not message_ids:
+            return 0
+
+        for mid in message_ids:
+            suppress_delete_ids.add(int(mid))
+
+        await client.delete_messages(entity=entity, message_ids=message_ids, revoke=True)
+        return len(message_ids)
+    except Exception as e:
+        print("PANEL DELETE ERROR:", e)
+        return -1
+
+
 async def delete_replied_message(event):
     """پاک کردن سریع فقط همون پیامی که روش ریپلای شده (مال خودم یا طرف مقابل)."""
     try:
@@ -956,6 +1002,17 @@ def panel_stats():
         "unanswered_count": unanswered,
         "deleted_total": deleted_total,
         "cached_pending": cached,
+    }
+
+
+async def account_info_dict():
+    """نسخه‌ی دیکشنری/JSON اطلاعات اکانت، برای پنل وب."""
+    me = await client.get_me()
+    return {
+        "name": user_name(me),
+        "username": user_username(me),
+        "id": me.id,
+        "phone": me.phone or "مخفی",
     }
 
 
