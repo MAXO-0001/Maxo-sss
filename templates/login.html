@@ -9,8 +9,9 @@
 <link rel="stylesheet" href="/static/style.css">
 </head>
 <body class="login-body">
+  <div class="scanlines" aria-hidden="true"></div>
   <main class="login-card">
-    <div class="login-mark">MAXO</div>
+    <div class="login-mark" id="loginMark">MAXO</div>
     <p class="login-sub">پنل کنترل سلف — ورود محدود به مدیر</p>
 
     <form id="loginForm" autocomplete="off">
@@ -25,6 +26,8 @@
       <button type="submit" class="btn-solid btn-wide">ورود</button>
       <p id="loginError" class="login-error" hidden>نام کاربری یا رمز عبور اشتباه است.</p>
     </form>
+
+    <div class="access-granted" id="accessGranted" hidden>ACCESS GRANTED</div>
   </main>
 
 <script>
@@ -34,6 +37,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   err.hidden = true;
   const username = document.getElementById('username').value;
   const password = document.getElementById('password').value;
+  const form = document.getElementById('loginForm');
   const btn = e.target.querySelector('button');
   btn.disabled = true;
   try {
@@ -43,7 +47,10 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
       body: JSON.stringify({username, password})
     });
     if (res.ok) {
-      window.location.href = '/';
+      form.style.display = 'none';
+      const flag = document.getElementById('accessGranted');
+      flag.hidden = false;
+      setTimeout(() => { window.location.href = '/'; }, 650);
     } else {
       err.hidden = false;
       btn.disabled = false;
@@ -53,6 +60,13 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     btn.disabled = false;
   }
 });
+
+// subtle periodic glitch on the wordmark, matches dashboard brand
+setInterval(() => {
+  const mark = document.getElementById('loginMark');
+  mark.classList.add('glitch');
+  setTimeout(() => mark.classList.remove('glitch'), 220);
+}, 5000);
 </script>
 </body>
 </html>

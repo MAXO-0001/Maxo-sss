@@ -2,34 +2,52 @@
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>MAXO — پنل مدیریت</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans+Arabic:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-<div class="shell">
+
+<div class="scanlines" aria-hidden="true"></div>
+
+<div class="boot" id="bootOverlay">
+  <div class="boot-mark">MAXO</div>
+  <div class="boot-lines" id="bootLines"></div>
+</div>
+
+<div class="shell" id="shell">
 
   <header class="topbar">
-    <div class="brand">MAXO<span class="brand-dot" id="liveDot"></span></div>
-    <nav class="topbar-tabs" id="tabs">
-      <button data-tab="overview" class="tab active">نمای کلی</button>
-      <button data-tab="autoreply" class="tab">پاسخ خودکار</button>
-      <button data-tab="clock" class="tab">ساعت اسم/بیو</button>
-      <button data-tab="block" class="tab">بلاک</button>
-      <button data-tab="mute" class="tab">سکوت</button>
-      <button data-tab="chats" class="tab">مکالمات</button>
-      <button data-tab="deleted" class="tab">آرشیو حذف‌شده</button>
-    </nav>
+    <div class="brand" id="brandMark">MAXO<span class="brand-dot" id="liveDot"></span></div>
     <button id="logoutBtn" class="btn-ghost">خروج</button>
   </header>
+
+  <nav class="tabbar" id="tabs">
+    <button data-tab="overview" class="tab active"><span class="tab-ic">◇</span><span>کلی</span></button>
+    <button data-tab="autoreply" class="tab"><span class="tab-ic">✎</span><span>پاسخ</span></button>
+    <button data-tab="clock" class="tab"><span class="tab-ic">⏱</span><span>فونت/ساعت</span></button>
+    <button data-tab="block" class="tab"><span class="tab-ic">⊘</span><span>بلاک</span></button>
+    <button data-tab="mute" class="tab"><span class="tab-ic">◐</span><span>سکوت</span></button>
+    <button data-tab="messages" class="tab"><span class="tab-ic">⌫</span><span>حذف پیام</span></button>
+    <button data-tab="chats" class="tab"><span class="tab-ic">☰</span><span>مکالمات</span></button>
+    <button data-tab="deleted" class="tab"><span class="tab-ic">▤</span><span>آرشیو</span></button>
+  </nav>
 
   <main class="content">
 
     <!-- OVERVIEW -->
     <section class="panel active" data-panel="overview">
       <h1>نمای کلی</h1>
+
+      <div class="card account-card" id="accountCard">
+        <div class="account-row"><span class="acc-k">نام</span><span class="acc-v mono" id="accName">—</span></div>
+        <div class="account-row"><span class="acc-k">یوزرنیم</span><span class="acc-v mono" id="accUsername">—</span></div>
+        <div class="account-row"><span class="acc-k">آیدی</span><span class="acc-v mono" id="accId">—</span></div>
+        <div class="account-row"><span class="acc-k">شماره</span><span class="acc-v mono" id="accPhone">—</span></div>
+      </div>
+
       <div class="stat-grid" id="statGrid"></div>
     </section>
 
@@ -57,9 +75,9 @@
       </div>
     </section>
 
-    <!-- NAME / BIO CLOCK -->
+    <!-- FONTS + NAME / BIO CLOCK -->
     <section class="panel" data-panel="clock">
-      <h1>ساعت در اسم و بیو</h1>
+      <h1>فونت‌ها و ساعت در اسم/بیو</h1>
 
       <div class="card">
         <div class="row-between">
@@ -69,23 +87,13 @@
             <span class="switch-track"><span class="switch-thumb"></span></span>
           </label>
         </div>
-        <div class="field-row">
-          <label class="field">
-            <span>برچسب</span>
-            <input type="text" id="nameLabel" maxlength="20" placeholder="MAXO">
-          </label>
-          <label class="field">
-            <span>فونت</span>
-            <select id="nameFont">
-              <option value="1">فونت ۱</option>
-              <option value="2">فونت ۲</option>
-              <option value="3">فونت ۳</option>
-              <option value="4">فونت ۴</option>
-            </select>
-          </label>
-        </div>
-        <div class="preview-line">پیش‌نمایش: <span id="namePreview" class="mono"></span></div>
-        <button id="saveNameClock" class="btn-solid">اعمال</button>
+        <label class="field">
+          <span>برچسب</span>
+          <input type="text" id="nameLabel" maxlength="20" placeholder="MAXO">
+        </label>
+        <div class="preview-line">پیش‌نمایش: <span id="namePreview" class="mono glow-text"></span></div>
+        <div class="font-gallery" id="nameFontGallery"></div>
+        <button id="saveNameClock" class="btn-solid">اعمال روی اسم</button>
       </div>
 
       <div class="card">
@@ -96,20 +104,10 @@
             <span class="switch-track"><span class="switch-thumb"></span></span>
           </label>
         </div>
-        <div class="field-row">
-          <label class="field">
-            <span>فونت</span>
-            <select id="bioFont">
-              <option value="1">فونت ۱</option>
-              <option value="2">فونت ۲</option>
-              <option value="3">فونت ۳</option>
-              <option value="4">فونت ۴</option>
-            </select>
-          </label>
-        </div>
-        <div class="preview-line">پیش‌نمایش خط زمان: <span id="bioPreview" class="mono"></span></div>
+        <div class="preview-line">پیش‌نمایش خط زمان: <span id="bioPreview" class="mono glow-text"></span></div>
+        <div class="font-gallery" id="bioFontGallery"></div>
         <p class="hint">بیوی قبلی حفظ می‌شود و خط زمان زیرش اضافه می‌شود.</p>
-        <button id="saveBioClock" class="btn-solid">اعمال</button>
+        <button id="saveBioClock" class="btn-solid">اعمال روی بیو</button>
       </div>
     </section>
 
@@ -141,6 +139,26 @@
       <p class="empty-state" id="muteEmpty" hidden>لیست سکوت خالی است.</p>
     </section>
 
+    <!-- DELETE MESSAGES -->
+    <section class="panel" data-panel="messages">
+      <h1>حذف پیام از یک PV</h1>
+      <p class="hint">همون کاری که با «حذف N» داخل خود تلگرام انجام می‌شد، از اینجا هم قابل انجامه.</p>
+      <div class="card">
+        <div class="field-row">
+          <label class="field">
+            <span>مخاطب (یوزرنیم یا آیدی)</span>
+            <input type="text" id="delValue" placeholder="@username یا آیدی عددی">
+          </label>
+          <label class="field" style="max-width:120px">
+            <span>تعداد</span>
+            <input type="number" id="delCount" min="1" max="1000" value="30">
+          </label>
+        </div>
+        <button id="delBtn" class="btn-solid btn-danger">حذف پیام‌ها</button>
+        <p id="delResult" class="hint" style="margin-top:10px"></p>
+      </div>
+    </section>
+
     <!-- CHATS -->
     <section class="panel" data-panel="chats">
       <h1>مکالمات</h1>
@@ -166,5 +184,4 @@
 
 <script src="/static/app.js"></script>
 </body>
-  </html>
-  
+</html>
