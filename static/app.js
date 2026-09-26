@@ -21,22 +21,39 @@ async function api(path, options = {}) {
   return data;
 }
 
-// ---------------- unicode "fancy font" preview (mirrors bot.py FONT_MAPS) ----------------
+// ---------------- unicode "fancy font" engine (mirrors bot.py FONT_MAPS) ----------------
 
 const FONT_MAPS = {
   1: { upper: 0x1D5D4, lower: 0x1D5EE, digit: 0x1D7EC },
   2: { upper: 0x1D400, lower: 0x1D41A, digit: 0x1D7CE },
   3: { upper: 0x1D670, lower: 0x1D68A, digit: 0x1D7F6 },
   4: { upper: 0x1D5A0, lower: 0x1D5BA, digit: 0x1D7E2 },
+  5: { upper: 0x1D434, lower: 0x1D44E, digit: null, overrides: { h: '\u210E' } },
+  6: { upper: 0x1D468, lower: 0x1D482, digit: 0x1D7CE },
+  7: { upper: 0x1D608, lower: 0x1D622, digit: 0x1D7E2 },
+  8: { upper: 0x1D63C, lower: 0x1D656, digit: 0x1D7EC },
+  9: { upper: 0x1D4D0, lower: 0x1D4EA, digit: null },
+  10: { upper: 0x1D56C, lower: 0x1D586, digit: null },
+  11: {
+    upper: 0x1D538, lower: 0x1D552, digit: null,
+    overrides: { C: '\u2102', H: '\u210D', I: '\u2111', N: '\u2115', P: '\u2119', Q: '\u211A', R: '\u211D', Z: '\u2124' },
+  },
+};
+
+const FONT_NAMES = {
+  1: 'Sans Bold', 2: 'Bold', 3: 'Monospace', 4: 'Sans',
+  5: 'Italic', 6: 'Bold Italic', 7: 'Sans Italic', 8: 'Sans Bold Italic',
+  9: 'Bold Script', 10: 'Bold Fraktur', 11: 'Double-Struck',
 };
 
 function applyFont(text, font) {
   const map = FONT_MAPS[font] || FONT_MAPS[1];
   let out = '';
   for (const ch of text) {
+    if (map.overrides && map.overrides[ch] !== undefined) { out += map.overrides[ch]; continue; }
     if (ch >= 'A' && ch <= 'Z') out += String.fromCodePoint(map.upper + (ch.charCodeAt(0) - 65));
     else if (ch >= 'a' && ch <= 'z') out += String.fromCodePoint(map.lower + (ch.charCodeAt(0) - 97));
-    else if (ch >= '0' && ch <= '9') out += String.fromCodePoint(map.digit + (ch.charCodeAt(0) - 48));
+    else if (ch >= '0' && ch <= '9' && map.digit !== null) out += String.fromCodePoint(map.digit + (ch.charCodeAt(0) - 48));
     else out += ch;
   }
   return out;
@@ -48,6 +65,45 @@ function clock12h() {
   if (h === 0) h = 12;
   const m = String(now.getMinutes()).padStart(2, '0');
   return `${h}:${m}`;
+}
+
+// ---------------- state ----------------
+
+const state = {
+  nameFont: 1,
+  bioFont: 1,
+};
+
+// ---------------- boot sequence ----------------
+
+function runBoot() {
+  const lines = [
+    'اتصال به سلف برقرار شد...',
+    'احراز هویت پنل تایید شد.',
+    'در حال بارگذاری وضعیت...',
+    'MAXO آماده است.',
+  ];
+  const box = $('#bootLines');
+  lines.forEach((text, i) => {
+    setTimeout(() => {
+      const div = document.createElement('div');
+      div.className = 'boot-line';
+      div.textContent = text;
+      box.appendChild(div);
+    }, i * 260);
+  });
+  setTimeout(() => {
+    $('#bootOverlay').classList.add('hidden');
+  }, lines.length * 260 + 350);
+}
+
+function initGlitch() {
+  setInterval(() => {
+    const mark = $('#brandMark');
+    if (!mark) return;
+    mark.classList.add('glitch');
+    setTimeout(() => mark.classList.remove('glitch'), 220);
+  }, 6000);
 }
 
 // ---------------- tabs ----------------
@@ -64,16 +120,31 @@ function initTabs() {
   });
 }
 
-const loaded = new Set();
-
 function loadPanel(name) {
   if (name === 'overview') return loadOverview();
   if (name === 'autoreply') return loadAutoReply();
   if (name === 'clock') return loadClock();
   if (name === 'block') return loadBlockList();
   if (name === 'mute') return loadMuteList();
+  if (name === 'messages') return; // static form, nothing to preload
   if (name === 'chats') return loadChats();
   if (name === 'deleted') return loadDeleted(1);
+}
+
+// ---------------- count-up animation ----------------
+
+function countUp(el, target) {
+  const duration = 500;
+  const start = performance.now();
+  const from = 0;
+  function step(now) {
+    const t = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    el.textContent = Math.round(from + (target - from) * eased);
+    if (t < 1) requestAnimationFrame(step);
+    else el.textContent = target;
+  }
+  requestAnimationFrame(step);
 }
 
 // ---------------- overview ----------------
@@ -90,14 +161,26 @@ const STAT_LABELS = [
 ];
 
 async function loadOverview() {
-  const { data } = await api('/api/stats');
+  const [{ data }, accRes] = await Promise.all([
+    api('/api/stats'),
+    api('/api/account').catch(() => ({ data: null })),
+  ]);
+
   const grid = $('#statGrid');
   grid.innerHTML = '';
   STAT_LABELS.forEach(([key, label]) => {
     const cell = document.createElement('div');
     cell.className = 'stat-cell';
-    cell.innerHTML = `<div class="stat-num">${data[key] ?? 0}</div><div class="stat-label">${label}</div>`;
+    const num = document.createElement('div');
+    num.className = 'stat-num mono';
+    num.textContent = '0';
+    const lbl = document.createElement('div');
+    lbl.className = 'stat-label';
+    lbl.textContent = label;
+    cell.appendChild(num);
+    cell.appendChild(lbl);
     grid.appendChild(cell);
+    countUp(num, data[key] ?? 0);
   });
 
   const flags = [
@@ -112,6 +195,13 @@ async function loadOverview() {
     cell.innerHTML = `<div class="stat-num">${on ? 'روشن' : 'خاموش'}</div><div class="stat-label">${label}</div>`;
     grid.appendChild(cell);
   });
+
+  if (accRes && accRes.data) {
+    $('#accName').textContent = accRes.data.name || '—';
+    $('#accUsername').textContent = accRes.data.username || '—';
+    $('#accId').textContent = accRes.data.id ?? '—';
+    $('#accPhone').textContent = accRes.data.phone || '—';
+  }
 }
 
 // ---------------- auto reply ----------------
@@ -163,54 +253,98 @@ function initAutoReply() {
   });
 }
 
-// ---------------- name / bio clock ----------------
+// ---------------- fonts + name / bio clock ----------------
+
+function renderFontGallery(containerId, sampleText, selected, onSelect) {
+  const container = $(containerId);
+  container.innerHTML = '';
+  Object.keys(FONT_MAPS).forEach((idStr) => {
+    const id = Number(idStr);
+    const card = document.createElement('div');
+    card.className = 'font-card' + (id === selected ? ' selected' : '');
+    card.innerHTML = `
+      <div class="font-card-sample">${applyFont(sampleText, id)}</div>
+      <div class="font-card-name">${id}. ${FONT_NAMES[id]}</div>
+    `;
+    card.addEventListener('click', () => {
+      $$('.font-card', container).forEach((c) => c.classList.remove('selected'));
+      card.classList.add('selected');
+      onSelect(id);
+    });
+    container.appendChild(card);
+  });
+}
 
 async function loadClock() {
   const { data } = await api('/api/stats');
+  state.nameFont = data.name_font || 1;
+  state.bioFont = data.bio_font || 1;
+
   $('#nameClockToggle').checked = data.name_clock;
-  $('#nameFont').value = data.name_font;
   $('#nameLabel').value = data.name_label || 'MAXO';
   $('#bioClockToggle').checked = data.bio_clock;
-  $('#bioFont').value = data.bio_font;
+
+  refreshFontGalleries();
   updateNamePreview();
   updateBioPreview();
 }
 
+function refreshFontGalleries() {
+  const label = $('#nameLabel').value || 'MAXO';
+  renderFontGallery('#nameFontGallery', `${label} 12`, state.nameFont, (id) => {
+    state.nameFont = id;
+    updateNamePreview();
+  });
+  renderFontGallery('#bioFontGallery', 'TIME 12', state.bioFont, (id) => {
+    state.bioFont = id;
+    updateBioPreview();
+  });
+}
+
 function updateNamePreview() {
   const label = $('#nameLabel').value || 'MAXO';
-  const font = Number($('#nameFont').value || 1);
-  $('#namePreview').textContent = applyFont(`${label} | ${clock12h()}`, font);
+  $('#namePreview').textContent = applyFont(`${label} | ${clock12h()}`, state.nameFont);
 }
 
 function updateBioPreview() {
-  const font = Number($('#bioFont').value || 1);
-  $('#bioPreview').textContent = applyFont(`TIME : ${clock12h()}`, font);
+  $('#bioPreview').textContent = applyFont(`TIME : ${clock12h()}`, state.bioFont);
 }
 
 function initClock() {
-  $('#nameLabel').addEventListener('input', updateNamePreview);
-  $('#nameFont').addEventListener('change', updateNamePreview);
-  $('#bioFont').addEventListener('change', updateBioPreview);
-
-  $('#saveNameClock').addEventListener('click', async () => {
-    await api('/api/name-clock', {
-      method: 'POST',
-      body: JSON.stringify({
-        enabled: $('#nameClockToggle').checked,
-        font: Number($('#nameFont').value),
-        label: $('#nameLabel').value,
-      }),
-    });
+  $('#nameLabel').addEventListener('input', () => {
+    refreshFontGalleries();
+    updateNamePreview();
   });
 
-  $('#saveBioClock').addEventListener('click', async () => {
-    await api('/api/bio-clock', {
-      method: 'POST',
-      body: JSON.stringify({
-        enabled: $('#bioClockToggle').checked,
-        font: Number($('#bioFont').value),
-      }),
-    });
+  $('#saveNameClock').addEventListener('click', async (e) => {
+    e.target.disabled = true;
+    try {
+      await api('/api/name-clock', {
+        method: 'POST',
+        body: JSON.stringify({
+          enabled: $('#nameClockToggle').checked,
+          font: state.nameFont,
+          label: $('#nameLabel').value,
+        }),
+      });
+    } finally {
+      e.target.disabled = false;
+    }
+  });
+
+  $('#saveBioClock').addEventListener('click', async (e) => {
+    e.target.disabled = true;
+    try {
+      await api('/api/bio-clock', {
+        method: 'POST',
+        body: JSON.stringify({
+          enabled: $('#bioClockToggle').checked,
+          font: state.bioFont,
+        }),
+      });
+    } finally {
+      e.target.disabled = false;
+    }
   });
 }
 
@@ -228,7 +362,7 @@ async function loadBlockList() {
       <td class="mono">${row.username ? '@' + escapeHtml(row.username) : '—'}</td>
       <td class="mono">${row.user_id}</td>
       <td class="mono">${escapeHtml(row.created_at || '')}</td>
-      <td><button class="link-action" data-id="${row.user_id}">آنبلاک</button></td>
+      <td><button class="link-action">آنبلاک</button></td>
     `;
     tr.querySelector('.link-action').addEventListener('click', async (e) => {
       e.target.disabled = true;
@@ -270,7 +404,7 @@ async function loadMuteList() {
       <td class="mono">${row.username ? '@' + escapeHtml(row.username) : '—'}</td>
       <td class="mono">${row.user_id}</td>
       <td class="mono">${escapeHtml(row.created_at || '')}</td>
-      <td><button class="link-action" data-id="${row.user_id}">رفع سکوت</button></td>
+      <td><button class="link-action">رفع سکوت</button></td>
     `;
     tr.querySelector('.link-action').addEventListener('click', async (e) => {
       e.target.disabled = true;
@@ -292,6 +426,35 @@ function initMuteList() {
       await api('/api/mute', { method: 'POST', body: JSON.stringify({ value }) });
       input.value = '';
       loadMuteList();
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
+// ---------------- delete messages ----------------
+
+function initDeleteMessages() {
+  $('#delBtn').addEventListener('click', async () => {
+    const value = $('#delValue').value.trim();
+    const count = Number($('#delCount').value || 0);
+    const result = $('#delResult');
+    result.textContent = '';
+    if (!value || count <= 0) {
+      result.textContent = 'مخاطب و تعداد رو درست وارد کن.';
+      return;
+    }
+    const btn = $('#delBtn');
+    btn.disabled = true;
+    result.textContent = 'در حال حذف...';
+    try {
+      const res = await api('/api/delete-messages', {
+        method: 'POST',
+        body: JSON.stringify({ value, count }),
+      });
+      result.textContent = `${res.deleted} پیام حذف شد.`;
+    } catch (e) {
+      result.textContent = 'حذف انجام نشد — مخاطب رو بررسی کن.';
     } finally {
       btn.disabled = false;
     }
@@ -384,16 +547,18 @@ function initLogout() {
 // ---------------- boot ----------------
 
 document.addEventListener('DOMContentLoaded', () => {
+  runBoot();
+  initGlitch();
   initTabs();
   initAutoReply();
   initClock();
   initBlockList();
   initMuteList();
+  initDeleteMessages();
   initDeleted();
   initLogout();
   loadOverview();
 
-  // keep the live clock-preview + brand dot feeling "alive"
   setInterval(() => {
     if ($('.panel[data-panel="clock"]').classList.contains('active')) {
       updateNamePreview();

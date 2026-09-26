@@ -1,6 +1,6 @@
 /* ==========================================================
-   MAXO panel — pure black & white control-room aesthetic.
-   No color accents, no rounded "SaaS card" look, no shadows.
+   MAXO panel — pure black & white "command terminal" aesthetic.
+   Mobile-first: bottom app-bar navigation, heavy but disciplined motion.
    Headings: Space Grotesk (display) + IBM Plex Sans Arabic (fa body)
    Data / labels: IBM Plex Mono
    ========================================================== */
@@ -13,9 +13,16 @@
   --panel: #0a0a0a;
   --muted: #9a9a9a;
   --hover: #161616;
+  --tabbar-h: 64px;
+  --topbar-h: 56px;
 }
 
 *{ box-sizing: border-box; }
+*:focus-visible{ outline: 1px solid var(--fg); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{ animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+}
 
 html, body{
   margin: 0;
@@ -24,6 +31,7 @@ html, body{
   color: var(--fg);
   font-family: "IBM Plex Sans Arabic", "Space Grotesk", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 .mono{ font-family: "IBM Plex Mono", monospace; }
@@ -36,7 +44,7 @@ button, input, select{
 h1{
   font-family: "Space Grotesk", "IBM Plex Sans Arabic", sans-serif;
   font-weight: 700;
-  font-size: 22px;
+  font-size: 21px;
   letter-spacing: 0.2px;
   margin: 0 0 18px 0;
   padding-bottom: 12px;
@@ -50,6 +58,86 @@ h2{
   margin: 0;
 }
 
+/* ---------------- AMBIENT SCANLINES ---------------- */
+
+.scanlines{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255,255,255,0.025) 0px,
+    rgba(255,255,255,0.025) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: overlay;
+  animation: scan-drift 9s linear infinite;
+}
+@keyframes scan-drift{
+  0%{ background-position: 0 0; }
+  100%{ background-position: 0 120px; }
+}
+
+/* ---------------- GLITCH / GLOW ---------------- */
+
+.glow-text{ text-shadow: 0 0 10px rgba(255,255,255,.35); }
+
+.glitch{ animation: glitch-jump .22s steps(2, end); }
+@keyframes glitch-jump{
+  0%{ transform: translate(0,0); text-shadow: 0 0 0 transparent; }
+  20%{ transform: translate(-2px,1px); text-shadow: 2px 0 rgba(255,255,255,.6), -2px 0 rgba(255,255,255,.3); }
+  40%{ transform: translate(2px,-1px); }
+  60%{ transform: translate(-1px,0); }
+  100%{ transform: translate(0,0); text-shadow: none; }
+}
+
+/* ---------------- BOOT OVERLAY ---------------- */
+
+.boot{
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  transition: opacity .5s ease, visibility .5s ease;
+}
+.boot.hidden{ opacity: 0; visibility: hidden; pointer-events: none; }
+
+.boot-mark{
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  font-size: 44px;
+  letter-spacing: 6px;
+  text-shadow: 0 0 24px rgba(255,255,255,.5);
+  animation: boot-pulse 1.4s ease-in-out infinite;
+}
+@keyframes boot-pulse{
+  0%, 100%{ opacity: 1; }
+  50%{ opacity: .55; }
+}
+
+.boot-lines{
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  color: var(--muted);
+  min-height: 90px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.boot-line{ opacity: 0; animation: line-in .35s ease forwards; }
+@keyframes line-in{
+  from{ opacity: 0; transform: translateY(4px); }
+  to{ opacity: 1; transform: translateY(0); }
+}
+
 /* ---------------- LOGIN ---------------- */
 
 .login-body{
@@ -57,11 +145,8 @@ h2{
   display: flex;
   align-items: center;
   justify-content: center;
-  background:
-    radial-gradient(1px 1px at 20% 30%, #1c1c1c 1px, transparent 1px),
-    radial-gradient(1px 1px at 70% 60%, #1c1c1c 1px, transparent 1px),
-    var(--bg);
-  background-size: 3px 3px, 3px 3px, auto;
+  background: var(--bg);
+  position: relative;
 }
 
 .login-card{
@@ -69,6 +154,13 @@ h2{
   border: 1px solid var(--line-strong);
   padding: 40px 32px;
   background: var(--panel);
+  position: relative;
+  z-index: 3;
+  animation: card-rise .5s ease;
+}
+@keyframes card-rise{
+  from{ opacity: 0; transform: translateY(10px); }
+  to{ opacity: 1; transform: translateY(0); }
 }
 
 .login-mark{
@@ -77,6 +169,7 @@ h2{
   font-size: 34px;
   letter-spacing: 4px;
   text-align: center;
+  text-shadow: 0 0 18px rgba(255,255,255,.3);
 }
 
 .login-sub{
@@ -94,6 +187,15 @@ h2{
   font-size: 13px;
   text-align: center;
   margin-top: 14px;
+}
+
+.access-granted{
+  text-align: center;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 16px;
+  letter-spacing: 3px;
+  padding: 20px 0 4px 0;
+  animation: line-in .3s ease, boot-pulse 1s ease-in-out infinite .3s;
 }
 
 /* ---------------- FORM ELEMENTS ---------------- */
@@ -116,11 +218,13 @@ h2{
   padding: 10px 12px;
   font-size: 14px;
   outline: none;
+  transition: border-color .15s ease, box-shadow .15s ease;
 }
 
 .field input:focus, .field select:focus,
 .add-row input:focus{
   border-color: var(--fg);
+  box-shadow: 0 0 0 3px rgba(255,255,255,.08);
 }
 
 .field-row{
@@ -137,9 +241,14 @@ h2{
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
+  transition: transform .1s ease, background .15s ease, box-shadow .15s ease;
 }
-.btn-solid:hover{ background: #d8d8d8; }
-.btn-solid:disabled{ opacity: .5; cursor: default; }
+.btn-solid:hover{ background: #d8d8d8; box-shadow: 0 0 16px rgba(255,255,255,.25); }
+.btn-solid:active{ transform: scale(.97); }
+.btn-solid:disabled{ opacity: .5; cursor: default; transform: none; box-shadow: none; }
+
+.btn-danger{ background: #fff; }
+.btn-danger:hover{ background: #ececec; box-shadow: 0 0 16px rgba(255,255,255,.35); }
 
 .btn-wide{ width: 100%; margin-top: 8px; }
 
@@ -150,9 +259,12 @@ h2{
   padding: 9px 16px;
   font-size: 13px;
   cursor: pointer;
+  transition: border-color .15s ease, transform .1s ease;
 }
 .btn-outline:hover{ border-color: var(--fg); }
+.btn-outline:active{ transform: scale(.96); }
 .btn-outline.is-active{ background: var(--fg); color: #000; }
+.btn-outline:disabled{ opacity: .4; cursor: default; }
 
 .btn-ghost{
   background: transparent;
@@ -161,6 +273,7 @@ h2{
   padding: 8px 16px;
   font-size: 13px;
   cursor: pointer;
+  transition: color .15s ease, border-color .15s ease;
 }
 .btn-ghost:hover{ color: var(--fg); border-color: var(--fg); }
 
@@ -175,23 +288,27 @@ h2{
 .topbar{
   display: flex;
   align-items: center;
-  gap: 24px;
-  padding: 14px 24px;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 18px;
+  height: var(--topbar-h);
   border-bottom: 1px solid var(--line);
   position: sticky;
   top: 0;
-  background: var(--bg);
+  background: rgba(0,0,0,.92);
+  backdrop-filter: blur(6px);
   z-index: 10;
 }
 
 .brand{
   font-family: "Space Grotesk", sans-serif;
   font-weight: 700;
-  font-size: 20px;
+  font-size: 19px;
   letter-spacing: 2px;
   display: flex;
   align-items: center;
   gap: 8px;
+  text-shadow: 0 0 12px rgba(255,255,255,.25);
 }
 
 .brand-dot{
@@ -203,40 +320,61 @@ h2{
   animation: pulse 2s ease-in-out infinite;
 }
 @keyframes pulse{
-  0%, 100% { opacity: 1; }
-  50% { opacity: .25; }
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px rgba(255,255,255,.8); }
+  50% { opacity: .25; box-shadow: none; }
 }
 
-.topbar-tabs{
+/* Bottom app-bar navigation — mobile-first, always docked */
+
+.tabbar{
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
   display: flex;
-  gap: 4px;
-  flex: 1;
+  justify-content: space-between;
+  border-top: 1px solid var(--line-strong);
+  background: rgba(0,0,0,.96);
+  backdrop-filter: blur(8px);
+  z-index: 20;
   overflow-x: auto;
+  padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
 .tab{
+  flex: 1 0 auto;
+  min-width: 68px;
   background: transparent;
   border: none;
-  border-bottom: 2px solid transparent;
+  border-top: 2px solid transparent;
   color: var(--muted);
-  padding: 8px 12px;
-  font-size: 13px;
+  padding: 9px 6px 8px 6px;
+  font-size: 10.5px;
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: color .15s ease;
   white-space: nowrap;
 }
+.tab-ic{ font-size: 16px; line-height: 1; }
 .tab:hover{ color: var(--fg); }
-.tab.active{ color: var(--fg); border-bottom-color: var(--fg); }
+.tab.active{ color: var(--fg); border-top-color: var(--fg); }
+.tab.active .tab-ic{ text-shadow: 0 0 10px rgba(255,255,255,.6); }
 
 .content{
   flex: 1;
-  padding: 28px 24px 60px 24px;
-  max-width: 980px;
+  padding: 22px 18px calc(var(--tabbar-h) + 30px) 18px;
+  max-width: 720px;
   width: 100%;
   margin: 0 auto;
 }
 
-.panel{ display: none; }
+.panel{ display: none; animation: panel-in .28s ease; }
 .panel.active{ display: block; }
+@keyframes panel-in{
+  from{ opacity: 0; transform: translateY(6px); }
+  to{ opacity: 1; transform: translateY(0); }
+}
 
 .hint{ color: var(--muted); font-size: 13px; margin: 0; }
 
@@ -246,19 +384,36 @@ h2{
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 14px;
+  flex-wrap: wrap;
 }
 
 .card{
   border: 1px solid var(--line);
   padding: 18px;
   margin-bottom: 18px;
+  transition: border-color .2s ease;
 }
+.card:hover{ border-color: var(--line-strong); }
+
+/* ---------------- ACCOUNT CARD ---------------- */
+
+.account-card{ margin-bottom: 20px; }
+.account-row{
+  display: flex;
+  justify-content: space-between;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+.account-row:last-child{ border-bottom: none; }
+.acc-k{ color: var(--muted); }
+.acc-v{ font-size: 13px; }
 
 /* ---------------- STAT GRID ---------------- */
 
 .stat-grid{
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 1px;
   background: var(--line);
   border: 1px solid var(--line);
@@ -267,22 +422,25 @@ h2{
 .stat-cell{
   background: var(--bg);
   padding: 18px 16px;
+  transition: background .2s ease;
 }
+.stat-cell:hover{ background: var(--hover); }
 
 .stat-num{
   font-family: "IBM Plex Mono", monospace;
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 500;
   line-height: 1;
 }
 
 .stat-label{
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11.5px;
   margin-top: 8px;
 }
 
-.stat-cell.on .stat-num::after{ content: " ●"; font-size: 12px; }
+.stat-cell.on .stat-num{ text-shadow: 0 0 10px rgba(255,255,255,.5); }
+.stat-cell.on .stat-num::after{ content: " ●"; font-size: 11px; }
 
 /* ---------------- SWITCH ---------------- */
 
@@ -302,6 +460,7 @@ h2{
   border: 1px solid var(--line-strong);
   position: relative;
   flex-shrink: 0;
+  transition: border-color .15s ease;
 }
 .switch-thumb{
   position: absolute;
@@ -310,12 +469,13 @@ h2{
   width: 16px;
   height: 16px;
   background: var(--muted);
-  transition: right .15s ease, background .15s ease;
+  transition: right .18s ease, background .18s ease, box-shadow .18s ease;
 }
 .switch input:checked + .switch-track{ border-color: var(--fg); }
 .switch input:checked + .switch-track .switch-thumb{
   right: 20px;
   background: var(--fg);
+  box-shadow: 0 0 10px rgba(255,255,255,.6);
 }
 
 /* ---------------- EDITOR ---------------- */
@@ -333,8 +493,9 @@ h2{
   font-size: 15px;
   line-height: 1.9;
   outline: none;
+  transition: border-color .15s ease;
 }
-.editor:focus{ border-color: var(--fg); }
+.editor:focus{ border-color: var(--fg); box-shadow: 0 0 0 3px rgba(255,255,255,.08); }
 .editor b, .editor strong{ font-weight: 700; }
 .editor blockquote{
   margin: 6px 0;
@@ -343,12 +504,51 @@ h2{
   color: var(--fg);
 }
 
-.saved-flag{ color: var(--muted); font-size: 13px; }
+.saved-flag{ color: var(--muted); font-size: 13px; animation: line-in .2s ease; }
 
 .preview-line{
   font-size: 13px;
   color: var(--muted);
   margin: 12px 0;
+}
+
+/* ---------------- FONT GALLERY ---------------- */
+
+.font-gallery{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  margin: 14px 0;
+}
+
+.font-card{
+  background: var(--bg);
+  padding: 12px 10px;
+  text-align: center;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background .15s ease;
+}
+.font-card:hover{ background: var(--hover); }
+.font-card.selected{
+  background: var(--fg);
+  color: #000;
+}
+.font-card.selected .font-card-name{ color: #000; }
+
+.font-card-sample{
+  font-size: 15px;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.font-card-name{
+  font-size: 10px;
+  color: var(--muted);
+  font-family: "IBM Plex Mono", monospace;
 }
 
 /* ---------------- TABLES ---------------- */
@@ -378,6 +578,7 @@ h2{
   border-bottom: 1px solid var(--line);
   vertical-align: middle;
 }
+.data-table tr{ transition: background .15s ease; }
 .data-table tr:hover td{ background: var(--hover); }
 
 .link-action{
@@ -390,6 +591,7 @@ h2{
   padding: 0;
 }
 .link-action:hover{ color: var(--fg); }
+.link-action:disabled{ opacity: .4; cursor: default; }
 
 .empty-state{
   color: var(--muted);
@@ -406,7 +608,9 @@ h2{
 .deleted-item{
   background: var(--bg);
   padding: 14px 16px;
+  transition: background .15s ease;
 }
+.deleted-item:hover{ background: var(--hover); }
 
 .deleted-meta{
   display: flex;
@@ -414,6 +618,8 @@ h2{
   color: var(--muted);
   font-size: 12px;
   margin-bottom: 6px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .deleted-text{ font-size: 14px; line-height: 1.7; white-space: pre-wrap; }
@@ -425,6 +631,8 @@ h2{
   color: var(--muted);
   border: 1px solid var(--line-strong);
   padding: 3px 8px;
+  text-decoration: none;
+  transition: color .15s ease, border-color .15s ease;
 }
 .deleted-media:hover{ color: var(--fg); border-color: var(--fg); }
 
@@ -438,9 +646,12 @@ h2{
 
 /* ---------------- RESPONSIVE ---------------- */
 
+@media (min-width: 720px){
+  .tab{ font-size: 12px; padding: 12px 14px; }
+  .tab-ic{ font-size: 17px; }
+}
+
 @media (max-width: 640px){
-  .topbar{ flex-wrap: wrap; }
-  .topbar-tabs{ order: 3; width: 100%; }
   .field-row{ flex-direction: column; }
-  }
-  
+  .content{ padding-left: 14px; padding-right: 14px; }
+}
